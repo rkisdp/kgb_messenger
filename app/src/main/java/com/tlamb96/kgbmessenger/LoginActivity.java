@@ -1,15 +1,21 @@
 package com.tlamb96.kgbmessenger;
 
+import android.app.AlertDialog;
+import android.content.DialogInterface;
 import android.content.Intent;
 import android.os.Bundle;
+import android.provider.Settings;
 import android.support.v7.app.AppCompatActivity;
 import android.util.Log;
 import android.view.View;
+import android.view.WindowManager;
 import android.widget.EditText;
 import android.widget.Toast;
 
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
+import java.util.Arrays;
+import java.util.List;
 
 public class LoginActivity extends AppCompatActivity {
     private static final String TAG = "LoginActivity";
@@ -21,7 +27,9 @@ public class LoginActivity extends AppCompatActivity {
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
+        getWindow().setFlags(WindowManager.LayoutParams.FLAG_SECURE, WindowManager.LayoutParams.FLAG_SECURE);
         setContentView(R.layout.activity_login);
+        getWindow().getDecorView().getRootView().setFilterTouchesWhenObscured(true);
 
         // Setup MD5 hashing.
         try {
@@ -29,6 +37,30 @@ public class LoginActivity extends AppCompatActivity {
         } catch (NoSuchAlgorithmException e) {
             e.printStackTrace();
             Log.e(TAG, "MD5 algorithm not found.");
+        }
+
+        warnIfThirdPartyImeActive();
+    }
+
+    private void warnIfThirdPartyImeActive() {
+        String currentIme = Settings.Secure.getString(getContentResolver(), Settings.Secure.DEFAULT_INPUT_METHOD);
+        if (currentIme == null) {
+            currentIme = "";
+        }
+        List<String> systemPackages = Arrays.asList("com.android.inputmethod.latin", "com.google.android.inputmethod.latin");
+        int slash = currentIme.indexOf('/');
+        String activePackage = slash >= 0 ? currentIme.substring(0, slash) : currentIme;
+        if (!systemPackages.contains(activePackage)) {
+            new AlertDialog.Builder(this)
+                    .setTitle("Security Warning")
+                    .setMessage("A third-party keyboard is active. Sensitive data may be at risk.")
+                    .setPositiveButton("Continue", new DialogInterface.OnClickListener() {
+                        @Override
+                        public void onClick(DialogInterface dialog, int which) {
+                            dialog.dismiss();
+                        }
+                    })
+                    .show();
         }
     }
 
